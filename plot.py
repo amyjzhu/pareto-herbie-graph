@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 current_plotted = []
 
 def get_dataset(filepath):
-    global current_plotted
 
     fp = open(filepath, "r")
     # fp = open("scored-disc.json","r")
@@ -26,14 +25,14 @@ def get_dataset(filepath):
     print(cost_accuracies_per_benchmark)
 
     current_benchmark = "quad2p (problem 3.2.1, positive)"
-    current_plotted = next(b for b in cost_accuracies_per_benchmark if b["benchmark"] == "quad2p (problem 3.2.1, positive)")["data"]
+    current_plotted = next(b for b in cost_accuracies_per_benchmark if b["benchmark"] == current_benchmark)["data"]
     xs = [x["cost"] for x in current_plotted]
     ys = [y["error"] for y in current_plotted]
 
-    return (xs, ys)
+    return (xs, ys, current_plotted)
 
-xs, ys = get_dataset("sample.json")
-xs2, ys2 = get_dataset("sample2.json")
+xs, ys, first_plotted = get_dataset("sample.json")
+xs2, ys2, second_plotted = get_dataset("sample2.json")
 #TODO: fix multiple scatters with tooltip 
 area = 5
 
@@ -49,13 +48,13 @@ annot = ax.annotate("", xy=(0,0), xytext=(20,20),textcoords="offset points",
                     arrowprops=dict(arrowstyle="->"))
 annot.set_visible(False)
 
-def update_annot(ind):
-    pos = sc.get_offsets()[ind["ind"][0]]
+def update_annot(ind, scatter, points):
+    pos = scatter.get_offsets()[ind["ind"][0]]
     annot.xy = pos
     # print(ind)
     # ind is all indices under that point
     # print(cost_accuracies_per_benchmark[ind["ind"][0]])
-    first = current_plotted[ind["ind"][0]]["expr"]
+    first = points[ind["ind"][0]]["expr"]
     text = f"{first}"
     annot.set_text(text)
     annot.get_bbox_patch().set_alpha(0.4)
@@ -65,14 +64,20 @@ def hover(event):
     vis = annot.get_visible()
     if event.inaxes == ax:
         cont, ind = sc.contains(event)
-        if cont:
-            update_annot(ind)
+        if cont :
+            update_annot(ind, sc, first_plotted)
             annot.set_visible(True)
             fig.canvas.draw_idle()
         else:
-            if vis:
-                annot.set_visible(False)
+            cont2, ind2 = sc2.contains(event)
+            if cont2:
+                update_annot(ind2, sc2, second_plotted)
+                annot.set_visible(True)
                 fig.canvas.draw_idle()
+            else:
+                if vis:
+                    annot.set_visible(False)
+                    fig.canvas.draw_idle()
 
 fig.canvas.mpl_connect("motion_notify_event", hover)
 
